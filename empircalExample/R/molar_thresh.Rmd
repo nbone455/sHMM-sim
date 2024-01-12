@@ -1,0 +1,324 @@
+---
+title: "molar"
+output: html_document
+---
+
+notes 
+
+- M3 missing when m2/m1 ~ 0.4 
+- M2/m1 increases as inhibition decreases
+- lack of m3 corr with shorter mandible (fabio)
+
+- is there any reason for a trend at all? (why/why not)
+
+- seems to match the ICM trend, I guess? How could you falsifey this? what would be the difference betwee it being a neutral relationship vs heavily selected 
+
+- old world monkeys have outlier molars 
+
+```{r}
+# make tree data 
+make.treedata <- function(tree, data, name_column="detect", as.is=FALSE) {
+  if(!inherits(tree, "phylo")) stop("tree must be of class 'phylo'")
+  if(is.vector(data)){
+    data <- as.matrix(data)
+    colnames(data) <- "trait"
+  }
+  if(is.null(colnames(data))){
+    colnames(data) <- paste("trait", 1:ncol(data), sep="")
+  }
+  coln <- colnames(data)
+  if(name_column=="detect"){
+    if(is.null(rownames(data))){
+      tmp.df <- data.frame(data)
+      offset <- 0
+    } else {
+      tmp.df <- data.frame(rownames(data), data)
+      offset <- 1
+    }
+    matches <- sapply(tmp.df, function(x) sum(x %in% tree$tip.label))
+    if(all(matches==0)) stop("No matching names found between data and tree")
+    name_column <- which(matches==max(matches))-offset
+  } else{
+    if(is.character(name_column)){
+      name_column <- which(name_column==coln)[1]
+    }
+  }
+  dat <- as_tibble(as.data.frame(lapply(1:ncol(data), function(x)
+    type.convert(apply(data[,x, drop=FALSE], 1, as.character), as.is=as.is))))
+  colnames(dat) <- coln
+  if(name_column==0){
+    clnm <- colnames(dat)
+    dat <- dat[,clnm, drop=FALSE]
+    dat.label <- as.character(rownames(data))
+  } else {
+    if(is.numeric(name_column)){
+      clnm <- (1:ncol(data))[-name_column]
+    } else {
+      clnm <- colnames(dat)[-which(colnames(dat)==name_column)]
+    }
+    dat <- dat[, clnm, drop=FALSE]
+    dat.label <- as.character(as.data.frame(data)[[name_column]])
+  }
+  data_not_tree <- setdiff(dat.label, tree$tip.label)
+  tree_not_data <- setdiff(tree$tip.label, dat.label)
+  phy <- drop.tip(tree, tree_not_data)
+  dat <- filter(dat, dat.label %in% phy$tip.label)
+  dat.label <- dat.label[dat.label %in% phy$tip.label]
+  if(any(duplicated(dat.label))){
+    warning("Duplicated data in dataset, selecting first unique entry for each species")
+    dat <- filter(dat, !duplicated(dat.label))
+    dat.label <- dat.label[!duplicated(dat.label)]
+  }
+  ...my.order... <- match(dat.label, phy$tip.label)
+  dat <- arrange(dat, ...my.order...)
+  td <- list(phy=phy, dat=dat)
+  class(td) <- c("treedata", "list")
+  attributes(td)$tip.label <- phy$tip.label
+  #attributes(td$dat)$row.names <- phy$tip.label
+  attributes(td)$dropped <- list(dropped_from_tree=data_not_tree,dropped_from_data=tree_not_data)
+  #Removing rownames for future versions of dplyr
+  #rownames(td$dat) <- attributes(td)$tip.label
+  return(td)
+}
+```
+
+```{r}
+# Load required libraries
+library(ape)
+library(dplyr)
+
+# Read in data
+prim_tree <- read.nexus("../data/prim_10k.nex")
+dat <- read.csv("../data/Plavcan_Lower Molar_All.csv")
+new_dat <- dat
+new_dat[is.na(new_dat)] <- 0  # Replace NA values with 0
+
+# Calculate presence/absence of the third molar
+p_dat <- dat %>%
+  mutate(pres.m3 = ifelse(is.na(m3.md), 0, 1)) %>%
+  select(Species, pres.m3) %>%
+  rename(taxa = Species)
+
+# Fixing a known subspecies naming issue
+p_dat$taxa[p_dat$taxa == "Semnopithecus_entellus_lianna"] <- "Semnopithecus_entellus"
+
+# Calculate the ratio of presence for each species
+counts <- p_dat %>%
+  group_by(taxa) %>%
+  summarise(ratio = mean(pres.m3))
+
+# Transform the ratio data into discrete categories
+d_dat <- counts %>%
+  mutate(pres = ifelse(ratio < 1, "0", "1"))
+
+# Prepare the threshold data
+thresh_dat <- d_dat %>%
+  mutate(pres = ifelse(pres == "1", "3&4", "1&2")) %>%
+  select(taxa, pres)
+
+# Output the data frames for inspection
+print(d_dat)
+print(thresh_dat)
+```
+## subspecies pres/absence 
+
+```{r}
+library(dplyr)
+
+# Assuming p_dat already has the taxa and pres.m3 columns
+# Extract genus and species from taxa, ignoring subspecies
+p_dat$genus_species <- sapply(strsplit(as.character(p_dat$taxa), "_"), function(x) paste(x[1:min(2,length(x))], collapse = "_"))
+
+# Summarize at the species level, considering unique taxa
+species_summary <- p_dat %>%
+  group_by(genus_species) %>%
+  summarise(
+    distinct_taxa_count = n_distinct(taxa),
+    presence_count = sum(pres.m3, na.rm = TRUE),
+    absence_count = sum(1 - pres.m3, na.rm = TRUE),
+    presence_ratio = mean(pres.m3, na.rm = TRUE)
+  )
+
+# View the summarized species data
+print(species_summary)
+```
+```{r}
+library(dplyr)
+
+# Assuming species_summary is already created with genus_species, presence_ratio, etc.
+# Define a threshold for presence/absence
+threshold <- 1 # Adjust this threshold as per your analysis requirements
+
+# Discretize the presence/absence data
+species_discrete <- species_summary %>%
+  mutate(pres_absence = ifelse(presence_ratio >= threshold, 1, 0)) %>%
+  select(genus_species, pres_absence)
+
+# Rename columns for consistency
+colnames(species_discrete) <- c("taxa", "pres_absence")
+
+# View the new dataframe
+print(species_discrete)
+
+
+# making thresh data
+t_dat <- species_discrete
+
+t_dat$pres_absence <- case_when(
+   t_dat$pres_absence == 0 ~ "1&2",
+  t_dat$pres_absence == 1 ~ "3&4"
+)
+```
+
+
+
+## species list cleaning 
+
+```{r}
+temp_dat <- d_dat
+# removing function
+sp <- sort(sp)
+
+drop_subspecies <- function(x){
+y <- strsplit(x, "_")[[1]]
+z <- paste(y[1], y[2], sep="_")
+return(z)
+}
+
+new <- list()
+
+# update this at a later time 
+some_trim <- c(5,7,8,9,25,11,15,25,26,27,30)
+sp_drop <- sp[some_trim]
+
+    for (k in 1:length(some_trim)) {
+      new[k] <- drop_subspecies(sp_drop[k])
+    }
+
+
+# trying to replace subspecies with general sp.
+place <- which(d_dat$taxa %in% sp_drop) 
+new <- unlist(new)
+new <- new[-c(4,8)]
+d_dat$taxa[place] <- new
+
+
+new2 <- new 
+place2 <- which(thresh_dat$taxa %in% sp_drop) 
+new2 <- unlist(new2)
+new2 <- new2[-c(4,8)]
+
+thresh_dat$taxa[place2] <- new2
+# removing duplicates 
+d_dat <- d_dat[!duplicated(d_dat),]
+thresh_dat <- thresh_dat[!duplicated(thresh_dat),]
+```
+
+```{r}
+drop_subspecies <- function(x){
+  parts <- strsplit(x, "_")[[1]]
+  if (length(parts) > 2) {
+    # If there are more than two parts, assume it's a subspecies and remove it
+    return(paste(parts[1], parts[2], sep = "_"))
+  } else {
+    # If there are only two parts, return the name as it is
+    return(x)
+  }
+}
+results <- lapply(sp, drop_subspecies)
+
+new_names <- sapply(results, function(x) x$new_name)
+is_subspecies <- sapply(results, function(x) x$is_subspecies)
+some_trim <- which(is_subspecies)
+
+
+```
+
+# analyses 
+
+
+
+
+```{r}
+# matching tree & analysis 
+library(treeplyr)
+library(corHMM)
+td <- make.treedata(prim_tree, species_discrete)
+td_thresh <- make.treedata(prim_tree, t_dat)
+
+head(td$dat)
+corr_d <- corHMM::corHMM(phy = td$phy, data = d_dat, rate.cat = 2)
+
+corr_ER <- corHMM::corHMM(phy = td$phy, data = d_dat, rate.cat = 2, model = "ER")
+
+corr_two <- corHMM(phy = td$phy, data = d_dat, rate.cat = 4)
+
+## thresh model
+three <- matrix( c(NA,1,NA,1,NA,1,NA,1,NA), nrow = 3, ncol= 3)
+rownames(three) <- c("1","2","3")
+colnames(three) <- c("1","2","3")
+four <- matrix(c(NA,1,NA,NA,NA,NA,1,NA,NA,1,NA,NA,NA,NA,1,NA), nrow=4, ncol=4)
+rownames(four) <- c("1","2","3","4")
+colnames(four) <- c("1","2","3","4")
+
+#corr_thresh <- corHMM(phy = td$phy, d_dat, rate.mat = four,rate.cat = 2)
+ 
+thresh_dat <- case_when(
+  d_dat$pres == 1 ~ "3&4",
+  d_dat$pres == 0 ~ "1&2"
+)
+
+# I Guess I need to fix the roots?
+root.obs <- function(prop, bins, cutoff=3.1){
+  qq <- qnorm(prop, 0, 1)
+  x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
+  x <- c(x[2:(length(x)-1)],1) - c(0,x[2:(length(x)-1)])
+  P <- c(0, x,0)
+  P <- P/sum(P) #Make sure it sums to 1
+  return(P)
+}
+#proportion fx
+prop <- function(data) {
+  x = table(unlist(data[,2]))
+  prop_1 <- x[1] / (x[1]+x[2])
+  return(prop_1)
+}
+ray_thresh <- rayDISC(phy = td$phy, thresh_dat, rate.mat = four, root.p = root.obs(prop = prop(thresh_dat), 4))
+
+ray_ARD <- rayDISC(phy=td$phy, thresh_dat, rate)
+
+#ray_thresh$phy$edge.length <- unlist(ray_thresh$phy$edge.length)
+#paintBranches(ray_thresh$phy, ray_thresh$phy$edge.length, state = ray_thresh$states)
+
+plotRECON(ray_thresh$phy, ray_thresh$states, piecolors = 
+c("yellow", "cornflowerblue", "orange", "dark blue"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+show.tip.label = TRUE, label.offset = 0.4, title = "threshold molar",file = "threshEX.pdf", type = "fan")
+
+#pure discrete plot
+#edgey <- unlist(corr_two$phy$edge.length)
+#paintBranches(corr_two$phy, edge = corr_two$phy$edge.length, state = corr_two$states)
+
+corr_two_plot <- plotRECON(corr_two$phy, corr_two$states, piecolors = 
+            c( "cornflowerblue", "orange"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+          show.tip.label = TRUE, label.offset = 0.4, title = "discrete molar",file = "discreteEX.pdf", type = "fan")
+
+corr_four_plot <- plotRECON(corr_d$phy, corr_d$states, piecolors = 
+                             c("yellow", "cornflowerblue", "orange", "dark blue"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+                           show.tip.label = TRUE, label.offset = 0.4, title = "corr 4-state molar",file = "corrEX.pdf", type = "fan")
+
+
+# mcmc threshold 
+library(MCMCglmmRAM)
+#making dataset ()
+mcmc_dat <- subset()
+prior <- 
+mcmc.thresh <- MCMCglmm(cbind() ~ trait -1, burnin =10000, nitt = 2e+05,
+                     random = ~corg(trait):animal, rcov=~corg(trait):units, pedigree= td$phy, 
+                     reduced = TRUE, data = td_glm,  prior = prior1, pr = TRUE, thin = 100,
+                     pl = TRUE, family = c("categorical", "gaussian", "gaussian", "gaussian", "gaussian"))
+
+y_dat <- as.factor(setNames(d_dat[,1], rownames(d_dat)))
+dotTree(td$phy, y_dat, colors = c("blue","red"))
+
+
+```
