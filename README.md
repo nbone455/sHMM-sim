@@ -18,3 +18,5 @@ generalized hidden Markov model vs threshold-approximation hidden state model eq
 
 ## heatmap 4: true model is a "almost" a threshold model
 generalized hidden Markov model vs threshold-approximation hidden state model equal rates
+
+# empirical exampele: primate molars
