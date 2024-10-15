@@ -4,14 +4,14 @@
 library(ape)
 # Lets assume you have a trait (presence or absence of a third molar) that you 
 # assume is a threshold trait -- an actually continuous trait that relies on 
-setwd("~/Documents/WORK/VT/Projects/ThresholdSims/")
-prim_tree <- read.nexus("tree.nex")
+setwd("../data/")
+#prim_tree <- read.nexus("tree.nex")
 prim_tree <- read.nexus("prim_10k.nex")
 
 # primate dataset
 #dat <- read.csv("Plavcan_Lower Molar_All.csv")
 # try with these, use the ratio as cutoff 
-dat <- read.csv("Data_edited species names.csv")
+dat <- read.csv("Plavcan_Lower Molar_All.csv")
 head(dat)
 new_dat <- dat
 new_dat[is.na(new_dat)] <- 0
