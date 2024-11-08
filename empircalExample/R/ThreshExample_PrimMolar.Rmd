@@ -1,0 +1,1514 @@
+---
+title: "Threshold example (maybe)"
+author: "Nic Bone"
+output: pdf_document
+---
+
+# Intro 
+
+Empirical example, corhmm X state vsthresh X state 
+
+# Functions
+
+```{r}
+# threshold data function
+
+## data = dataframe with binary state data with taxa in first column, N = total number of states
+makeThreshold <- function(data, N){
+  
+    # this doesnt work
+if (N <= 3 || N %% 2 != 0) {
+    print("N must be an even number greater than 3 to make a threshold model")
+    return(NULL)
+  }
+  
+     if(isTRUE(N == 4)){
+      four_dat <- case_when(
+      data[,2] == 0 ~ "1&2",
+      data[,2] == 1 ~ "3&4")
+      fourOut <- data.frame(data[,1] ,four_dat)
+      return(fourOut)
+    }
+  
+    if(isTRUE(N == 6)){
+      six_dat <- case_when(
+      data[,2] == 1 ~ "4&5&6",
+      data[,2] == 0 ~ "1&2&3")
+      sixOut <- data.frame(data[,1] ,six_dat)
+      return(sixOut)
+    }
+  
+    if(isTRUE(N == 8)){
+      eight_dat <- case_when(
+      data[,2] == 1 ~ "5&6&7&8",
+      data[,2] == 0 ~ "1&2&3&4")
+      eightOut <- data.frame(data[,1] ,eight_dat)
+      return(eightOut)
+    }
+    if(isTRUE(N == 10)){
+        ten_dat <- case_when(
+        data[,2] == 1 ~ "6&7&8&9&10",
+        data[,2] == 0 ~ "1&2&3&4&5")
+        tenOut <- data.frame(data[,1] ,ten_dat)
+        return(tenOut)
+      }
+}
+
+# old corhmm function maker 
+rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
+  if (hrm == TRUE) {
+    k = 2
+    mat1 <- matrix(NA, k * rate.cat, k * rate.cat)
+    mat2 <- matrix(NA, k * rate.cat, k * rate.cat)
+    vec.tmp1 <- rep(c(0, 1), rate.cat)
+    vec.tmp2 <- rep(1:rate.cat, rep(2, rate.cat)) - 1
+    for (i in 1:(k * rate.cat)) {
+      mat1[i, ] <- abs(vec.tmp1 - vec.tmp1[i])
+      mat2[i, ] <- abs(vec.tmp2 - vec.tmp2[i])
+    }
+    matFINAL <- mat1 + mat2
+    rate.mat.index <- matrix(NA, k * rate.cat, k * rate.cat)
+    np <- k + (rate.cat - 1) * 6
+    index <- matFINAL == 1
+    rate.mat.index[index] <- 1:np
+    if (rate.cat == 1) {
+      rownames(rate.mat.index) <- c("(0)", "(1)")
+      colnames(rate.mat.index) <- c("(0)", "(1)")
+    }
+    if (rate.cat == 2) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)")
+    }
+    if (rate.cat == 3) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)")
+    }
+    if (rate.cat == 4) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)")
+    }
+    if (rate.cat == 5) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)")
+    }
+    if (rate.cat == 6) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)", "(0,R6)", "(1,R6)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)", "(0,R6)", "(1,R6)")
+    }
+    if (rate.cat == 7) {
+      rownames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)", "(0,R6)", "(1,R6)",
+                                    "(0,R7)", "(1,R7)")
+      colnames(rate.mat.index) <- c("(0,R1)", "(1,R1)",
+                                    "(0,R2)", "(1,R2)", "(0,R3)", "(1,R3)", "(0,R4)",
+                                    "(1,R4)", "(0,R5)", "(1,R5)", "(0,R6)", "(1,R6)",
+                                    "(0,R7)", "(1,R7)")
+    }
+  }
+  if (hrm == FALSE) {
+    k = ntraits
+    nl = 2
+    if (ntraits == 1) {
+      k <- 1
+      nl <- nstates
+      if (is.character(model)) {
+        rate.mat.index <- matrix(NA, nl, nl)
+        tmp2 <- cbind(1:(nl^k), 1:(nl^k))
+        index <- matrix(TRUE, nl^k, nl^k)
+        diag(index) <- FALSE
+        
+        if ("ER" %in% model) {
+          np <- 1
+          rate.mat.index[index] <- 1:np
+        }
+        if ("SYM" %in% model) {
+          np <- nl * (nl - 1)/2
+          sel <- col(rate.mat.index) < row(rate.mat.index)
+          rate.mat.index <- t(rate.mat.index)
+          rate.mat.index[sel] <- 1:np
+          rate.mat.index[upper.tri(rate.mat.index)] = t(rate.mat.index)[upper.tri(rate.mat.index)]
+        }
+        if ("ARD" %in% model) {
+          np <- nl * (nl - 1)
+          rate.mat.index[index] <- 1:np
+        }
+      }
+    }
+    if (ntraits == 2) {
+      mat1 <- matrix(, nl^k, nl^k)
+      mat2 <- matrix(, nl^k, nl^k)
+      vec.tmp1 <- c(0, 0, 1, 1)
+      vec.tmp2 <- c(0, 1, 0, 1)
+      for (i in 1:(nl^k)) {
+        mat1[i, ] <- abs(vec.tmp1 - vec.tmp1[i])
+        mat2[i, ] <- abs(vec.tmp2 - vec.tmp2[i])
+      }
+      matFINAL <- mat1 + mat2
+      if (is.character(model)) {
+        rate.mat.index <- matrix(NA, nl^k, nl^k)
+        if (model == "ER") {
+          np <- 1
+          index <- matFINAL == 1
+          rate.mat.index[index] <- 1:np
+        }
+        if (model == "SYM") {
+          np <- 4
+          index <- matFINAL == 1
+          rate.mat.index[index][c(1, 2, 4, 6)] <- rate.mat.index[index][c(3,
+                                                                          5, 7, 8)] <- 1:np
+        }
+        if (model == "ARD") {
+          np <- 8
+          index <- matFINAL == 1
+          rate.mat.index[index] <- 1:np
+        }
+      }
+    }
+    if (ntraits == 3) {
+      mat1 <- matrix(, nl^k, nl^k)
+      mat2 <- matrix(, nl^k, nl^k)
+      mat3 <- matrix(, nl^k, nl^k)
+      vec.tmp1 <- c(0, 1, 0, 0, 1, 1, 0, 1)
+      vec.tmp2 <- c(0, 0, 1, 0, 1, 0, 1, 1)
+      vec.tmp3 <- c(0, 0, 0, 1, 0, 1, 1, 1)
+      for (i in 1:(nl^k)) {
+        mat1[i, ] <- abs(vec.tmp1 - vec.tmp1[i])
+        mat2[i, ] <- abs(vec.tmp2 - vec.tmp2[i])
+        mat3[i, ] <- abs(vec.tmp3 - vec.tmp3[i])
+      }
+      matFINAL <- mat1 + mat2 + mat3
+      if (is.character(model)) {
+        rate.mat.index <- matrix(NA, nl^k, nl^k)
+        if (model == "ER") {
+          np <- 1
+          index <- matFINAL == 1
+          rate.mat.index[index] <- 1:np
+        }
+        if (model == "SYM") {
+          np <- 12
+          index <- matFINAL == 1
+          rate.mat.index[index][c(1, 2, 3, 5, 6, 8, 9,
+                                  11, 12, 15, 18, 21)] <- rate.mat.index[index][c(4,
+                                                                                  7, 10, 13, 16, 14, 19, 17, 20, 22, 23, 24)] <- 1:np
+        }
+        if (model == "ARD") {
+          np <- 24
+          index <- matFINAL == 1
+          rate.mat.index[index] <- 1:np
+        }
+      }
+    }
+    if (ntraits == 1) {
+      rownames(rate.mat.index) <- as.character(1:nl)
+      colnames(rate.mat.index) <- as.character(1:nl)
+    }
+    if (ntraits == 2) {
+      rownames(rate.mat.index) <- c("(0,0)", "(0,1)", "(1,0)",
+                                    "(1,1)")
+      colnames(rate.mat.index) <- c("(0,0)", "(0,1)", "(1,0)",
+                                    "(1,1)")
+    }
+    if (ntraits == 3) {
+      rownames(rate.mat.index) <- c("(0,0,0)", "(1,0,0)",
+                                    "(0,1,0)", "(0,0,1)", "(1,1,0)", "(1,0,1)", "(0,1,1)",
+                                    "(1,1,1)")
+      colnames(rate.mat.index) <- c("(0,0,0)", "(1,0,0)",
+                                    "(0,1,0)", "(0,0,1)", "(1,1,0)", "(1,0,1)", "(0,1,1)",
+                                    "(1,1,1)")
+    }
+  }
+  return(rate.mat.index)
+}
+
+# so N here is the total number of states, maybe it could be the other wa
+daMatrix <- function(N) {
+
+# add something here that calcs hidden states (no. of unique states * no. of hidden states) and then gives the "real" N
+  
+matNames <- c("hiThresh1P", "hiThresh2P", "hiThreshARD", "MkER", "MkARD", "MkSYM")
+
+    #maybe add a 3x3 here
+    if(isTRUE(N == 4)){
+      four_threshER <- matrix(c(NA,1,NA,NA,NA,NA,1,NA,NA,1,NA,NA,NA,NA,1,NA), nrow=4, ncol=4)
+      four_thresh2 <- matrix(c(NA,1,NA,NA,NA,NA,1,NA,NA,2,NA,NA,NA,NA,2,NA), nrow=4, ncol=4)
+      four_threshARD <- matrix(c(NA,1,NA,NA,NA,NA,2,NA,NA,3,NA,NA,NA,NA,4,NA), nrow=4, ncol=4)
+      four_ER <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, model = "ER")
+      four_ARD <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, model = "ARD")
+      four_SYM <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, model = "SYM")
+        
+        fourMats <- list(four_threshER, four_thresh2, four_threshARD, four_ER, four_ARD, four_SYM)
+        names(fourMats) <- matNames
+          return(fourMats)
+    }  
+  
+    if(isTRUE(N == 6)) {
+    
+      # hiThresh 6 -- 1 parameter
+    six_thresh <-  matrix(c(NA,1,NA,NA,NA,NA,NA,NA,1,NA,NA,NA,NA,1,NA,1,NA,NA,NA,NA,1,NA,1,NA,NA,NA,NA,1,NA,NA,NA,NA,NA,NA,1,NA), nrow=6, ncol=6)
+      # hiThresh 6 -- 2 parameter
+    six_thresh2 <-  matrix(c(NA,1,NA,NA,NA,NA,NA,NA,1,NA,NA,NA,NA,2,NA,1,NA,NA,NA,NA,2,NA,1,NA,NA,NA,NA,2,NA,NA,NA,NA,NA,NA,2,NA), nrow=6, ncol=6)
+    six_threshARD <-  matrix(c(NA,1,NA,NA,NA,NA,NA,NA,2,NA,NA,NA,NA,3,NA,4,NA,NA,NA,NA,5,NA,6,NA,NA,NA,NA,7,NA,NA,NA,NA,NA,NA,8,NA), nrow=6, ncol=6)
+    
+    six_ARD <- rate.mat.maker(1, hrm = F, ntraits = 1, nstates = N, model = "ARD")
+    
+    six_SYM <- rate.mat.maker(1, hrm = F, ntraits = 1, nstates = N, model = "SYM")
+    
+    six_ER <- matrix(ncol=6,nrow=6,byrow=T,data = c(NA,1,1,1,1,1,1,NA,1,1,1,1,1,1,NA,1,1,1,1,1,1,NA,1,1,1,1,1,1,NA,1,1,1,1,1,1,NA))
+    
+      sixMats <- list(six_thresh, six_thresh2, six_threshARD, six_ER, six_ARD, six_SYM)
+      names(sixMats) <- matNames
+      
+        return(sixMats)
+    }
+  
+    if(isTRUE(N == 8)) {
+      
+    eight_thresh <- matrix(c(NA,1,NA,NA,NA,NA,NA,NA,
+                  NA,NA,1,NA,NA,NA,NA, NA
+                  ,NA,1,NA,1,NA,NA,NA,NA
+                  ,NA,NA,1,NA,1,NA,NA,NA,
+                  NA,NA,NA,1,NA,1,NA,NA,
+                  NA,NA,NA,NA,1,NA,1,NA,
+                  NA,NA,NA,NA,NA,1,NA,NA,
+                  NA,NA,NA,NA,NA,NA,1,NA), ncol=8, nrow=8)
+    
+      eight_thresh2 <- matrix(c(NA,2,NA,NA,NA,NA,NA,NA,
+                  NA,NA,2,NA,NA,NA,NA, NA
+                  ,NA,1,NA,2,NA,NA,NA,NA
+                  ,NA,NA,1,NA,2,NA,NA,NA,
+                  NA,NA,NA,1,NA,2,NA,NA,
+                  NA,NA,NA,NA,1,NA,2,NA,
+                  NA,NA,NA,NA,NA,1,NA,NA,
+                  NA,NA,NA,NA,NA,NA,1,NA), ncol=8, nrow=8)
+      
+      eight_threshARD <- matrix(c(NA,1,NA,NA,NA,NA,NA,NA,
+                  NA,NA,2,NA,NA,NA,NA, NA
+                  ,NA,3,NA,4,NA,NA,NA,NA
+                  ,NA,NA,5,NA,6,NA,NA,NA,
+                  NA,NA,NA,7,NA,8,NA,NA,
+                  NA,NA,NA,NA,9,NA,10,NA,
+                  NA,NA,NA,NA,NA,11,NA,NA,
+                  NA,NA,NA,NA,NA,NA,12,NA), ncol=8, nrow=8)
+    
+     eight_ER <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, "ER")
+    eight_SYM <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, "SYM")
+    eight_ARD <- rate.mat.maker(1, hrm = FALSE, ntraits = 1, nstates = N, "ARD")
+    
+      eightMats <- list(eight_thresh, eight_thresh2, eight_threshARD, eight_ER, eight_ARD, eight_SYM)
+      names(eightMats) <- matNames
+        return(eightMats)
+    
+    }
+  
+    if(isTRUE(N == 10)) {
+      
+      ten_thresh <-  matrix(ncol = 10, nrow = 10,byrow = T, c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
+                                                 1,NA,1,NA,NA,NA,NA,NA,NA,NA,
+                                                 NA,1,NA,1,NA,NA,NA,NA,NA,NA,
+                                                 NA,NA,1,NA,1,NA,NA,NA,NA,NA,
+                                                 NA,NA,NA,1,NA,1,NA,NA,NA,NA,
+                                                 NA,NA,NA,NA,1,NA,1,NA,NA,NA,
+                                                 NA,NA,NA,NA,NA,1,NA,1,NA,NA,
+                                                 NA,NA,NA,NA,NA,NA,1,NA,1,NA,
+                                                 NA,NA,NA,NA,NA,NA,NA,1,NA,1,
+                                                 NA,NA,NA,NA,NA,NA,NA,NA,NA,NA))
+      ## two parameter hiThresh
+      ten_thresh2 <-  matrix(ncol = 10, nrow = 10,byrow = T, c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
+                                                 1,NA,2,NA,NA,NA,NA,NA,NA,NA,
+                                                 NA,1,NA,2,NA,NA,NA,NA,NA,NA,
+                                                 NA,NA,1,NA,2,NA,NA,NA,NA,NA,
+                                                 NA,NA,NA,1,NA,2,NA,NA,NA,NA,
+                                                 NA,NA,NA,NA,1,NA,2,NA,NA,NA,
+                                                 NA,NA,NA,NA,NA,1,NA,2,NA,NA,
+                                                 NA,NA,NA,NA,NA,NA,1,NA,2,NA,
+                                                 NA,NA,NA,NA,NA,NA,NA,1,NA,2,
+                                                 NA,NA,NA,NA,NA,NA,NA,NA,NA,NA))
+      
+       ten_threshARD <-  matrix(ncol = 10, nrow = 10,byrow = T, c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
+                                                 1,NA,2,NA,NA,NA,NA,NA,NA,NA,
+                                                 NA,3,NA,4,NA,NA,NA,NA,NA,NA,
+                                                 NA,NA,5,NA,6,NA,NA,NA,NA,NA,
+                                                 NA,NA,NA,7,NA,8,NA,NA,NA,NA,
+                                                 NA,NA,NA,NA,9,NA,10,NA,NA,NA,
+                                                 NA,NA,NA,NA,NA,11,NA,12,NA,NA,
+                                                 NA,NA,NA,NA,NA,NA,13,NA,14,NA,
+                                                 NA,NA,NA,NA,NA,NA,NA,15,NA,16,
+                                                 NA,NA,NA,NA,NA,NA,NA,NA,NA,NA))
+      
+      ten_ER <- rate.mat.maker(1, hrm = F, ntraits = 1, nstates = N, model = "ER")
+      ten_ARD <- rate.mat.maker(1, hrm = F, ntraits = 1, nstates = N, model = "ARD")
+      ten_SYM <- rate.mat.maker(1, hrm = F, ntraits = 1, nstates = N, model = "SYM")
+      
+      tenMats <- list(ten_thresh, ten_thresh2, ten_threshARD, ten_ER, ten_ARD, ten_SYM)
+      names(tenMats) <- matNames
+        return(tenMats)
+    }
+}
+
+## prereqs for DrStructure
+# "classic" root function
+root.obs <- function(prop, bins, cutoff=3.1){
+  qq <- qnorm(prop, 0, 1)
+  x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
+  x <- c(x[2:(length(x)-1)],1) - c(0,x[2:(length(x)-1)])
+  P <- c(0, x,0)
+  P <- P/sum(P) #Make sure it sums to 1
+  return(P)
+}
+
+#proportion fx .. dunno if this is really needed for these analyses but here we are 
+prop <- function(data) {
+  x = table(unlist(data[,2]))
+  prop_1 <- x[1] / (x[1]+x[2])
+  return(prop_1)
+}
+
+
+# runs everything? 
+
+DrStructure <- function(data, phy, mats) {
+  ## Data checks
+  if (!is.data.frame(data) || ncol(data) != 2) {
+    stop("Input 'data' must be a data frame with two columns.")
+  }
+  if (!inherits(phy, "phylo")) {
+    stop("Input 'phy' must be a phylo object.")
+  }
+  if (length(unique(data[, 1])) != length(phy$tip.label)) {
+    stop("The number of unique taxa in 'data' must match the number of tip labels in 'phy'.")
+  }
+  
+  ## Wrangling datasets into corHMM format (if needed)
+  # Add code here to preprocess and convert the input data if required
+  
+  ## this will be a list that houses all the resulting corHMM runs
+  corOuts <- list()
+  ## same for Mk runs
+  mkOuts <- list()
+  ## same for thresh
+  threshOuts <- list()
+  
+  ## Mk runs
+  ### maybe need mats but probably not
+  # ER
+  mkOuts[[1]] <- corHMM(phy = phy, data = data, rate.cat = 1, model = "ER")
+  # ARD
+  mkOuts[[2]] <- corHMM(phy = phy, data = data, rate.cat = 1, model = "ARD")
+  # SYM
+  mkOuts[[3]] <- corHMM(phy = phy, data = data, rate.cat = 1, model = "SYM")
+  mkNames <- c("ER", "ARD", "SYM")
+  names(mkOuts) <- mkNames
+  
+  ## corHMM (4 total state, 6 total state, 8 total state)
+  corOuts[[1]] <- corHMM(phy = phy, data = data, rate.cat = 2)
+  corOuts[[2]] <- corHMM(phy = phy, data = data, rate.cat = 3)
+  corOuts[[3]] <- corHMM(phy = phy, data = data, rate.cat = 4, node.states = 'none')
+  corNames <- c("4states", "6states", "8states")
+  names(corOuts) <- corNames
+  
+  ## HMMthreshER
+  library(dplyr)
+  colnames(data) <- c("taxa", "trait")
+  tdatSix <- case_when(
+    data$trait == 1 ~ "4&5&6",
+    data$trait == 0 ~ "1&2&3"
+  )
+  tdatSix <- data.frame(data$taxa, tdatSix)
+  
+  ## 61p, 62p
+  ### 6s
+  temp <- daMatrix(6)[1]
+  sixP <- temp$hiThresh1P
+  threshOuts[[1]] <- rayDISC(phy = phy, data = tdatSix, rate.mat = sixP, root.p = root.obs(prop = prop(tdatSix), 6), model = "ER")
+  
+  ## ARD model
+  temp2 <- daMatrix(6)[2]
+  sixPP <- temp2$hiThresh2P
+  threshOuts[[2]] <- rayDISC(phy = phy, data = tdatSix, rate.mat = sixPP, root.p = root.obs(prop = prop(tdatSix), 6), node.states = "none", model = "ER")
+  tNames <- c("tsix1P", "tsix2P")
+  names(threshOuts) <- tNames
+  
+  ## Return the results as a list
+  return(list(mkOuts = mkOuts, corOuts = corOuts, threshOuts = threshOuts))
+}
+```
+
+
+# Data prep
+
+## reading in Data
+
+```{r}
+library(dplyr)
+library(ape)
+library(treeplyr)
+
+setwd("~/Documents/hiThresh power")
+#prim_tree <- read.nexus("tree.nex")
+prim_tree <- read.nexus(file = "../prim_10k.nex")
+
+# primate dataset
+#dat <- read.csv("Plavcan_Lower Molar_All.csv")
+# try with these, use the ratio as cutoff 
+dat <- read.csv("../Data_edited species names.csv")
+head(dat)
+dat[is.na(dat)] <- 0
+```
+
+
+## Making the threshold 
+
+if cutoff = 1, then there at 8 taxa missing M3 , if 5 then there are 23
+ - seems like maybe cutting it off at 6 or 7 is the move 
+ 
+  ln(M3.md) - ln(M1.md)
+  
+  
+```{r}
+# seein the ratio
+attempt <- dat
+attempt <- mutate(attempt, ratio = (m3.md) / (m1.md))
+hist(attempt$ratio, main = "distribution of molar ratios across primates", xlab = "molar 3 / molar 1 ratio")
+dat <- attempt
+```
+  
+### testing threshold decisions
+
+```{r}
+# threshold decision
+set.seed(1001203)
+stored <- list()
+threshs <- list()
+# define better thresholds 
+se <- c(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.70, 0.80, 0.9, 1)
+
+png(file = "threshold_cutoffs.png", width = 20000, height = 800)  # Adjust the width and height as needed
+par(mfrow = c(2, 5))  # Adjust the number of rows and columns based on the number of cutoffs
+
+hist_list <- list()
+
+
+for(j in 1:length(se)) {
+  pres <- list()
+  names <- list()
+  cutoff <- se[j]
+
+  for(i in 1:length(dat$Row.names)) {
+    if(dat$ratio[i] <= cutoff){
+      pres[[i]] <- 0
+      names[[i]] <- dat$Row.names[i]
+    } else {
+      pres[[i]] <- 1 
+      names[[i]] <- dat$Row.names[i]
+    }
+    
+  }
+  
+
+  p_dat <- data.frame(unlist(pres))
+  p_dat$species <- unlist(names)
+  
+  colnames(p_dat) <- c("pres.m3", "taxa")
+  # flipping columns 
+  p_dat <- p_dat[,c(2,1)]
+  
+  stored[[j]] <- as.vector(p_dat$pres.m3)
+  x <- data.frame(dat$Row.names, dat$ratio, stored[[j]])
+  threshs[[j]] <- x
+  
+  hist_list[[j]] <- hist(threshs[[j]]$dat.ratio, main = paste("Cutoff:", cutoff), xlab = "Presence/Absence", ylab = "Frequency")
+  abline(v = se[j], col = "red", lwd = 2)
+
+}
+
+for(j in 1:length(se)) {
+  hist_list[[j]]
+}
+
+
+dev.off()
+```
+
+```{r}
+
+# plotting spread on trees 
+for(i in 1:length(stored)) {
+  
+data_cutoff <- data.frame(p_dat$taxa, as.factor(stored[[i]]))
+colnames(data_cutoff) <- c('taxa','pres')
+td_cutoff <- make.treedata(tree = prim_tree, dat = data_cutoff)
+
+tmode <- setNames(data_cutoff$pres, data_cutoff$taxa)
+
+plotTree(prim_tree,ftype="i",offset=0.6,fsize=0.9)
+TMODE<-to.matrix(tmode,levels(tmode))
+TMODE <-TMODE[td_cutoff$phy$tip.label,]
+#tiplabels(pie=TMODE,piecol=palette()[c(4,2)],cex=0.6)
+#legend("topleft",levels(tmode),pch=21,
+#    pt.cex=2.2)
+count <- as.character(i)
+plotTree(td_cutoff$phy,ftype="i",offset=0.6,fsize=0.9)
+obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+cols<-setNames(palette()[c(4,2)],levels(tmode))
+
+points(obj$xx[1:Ntip(td_cutoff$phy)],
+    obj$yy[1:Ntip(td_cutoff$phy)],pch=21,cex=1.2,bg=cols[tmode[td_cutoff$phy$tip.label]])
+
+legend("topleft",levels(tmode),pch=21,pt.bg=palette()[c(4,2)],
+    pt.cex=2.2)
+
+}
+```
+
+# Running drStructure 
+
+```{r}
+library(corHMM)
+# function that runs every analyses and spits out a results table 
+
+# inputs: dataset, tree
+## params: hidden state analysis? (hopefully)
+## optional: estimate ancestral state (y/n, whats your favorite)
+
+phy <- prim_tree 
+data <- data_cutoff
+td <- make.treedata(tree = phy, data = data)
+phy <- td$phy
+data <- data.frame(td$phy$tip.label, td$dat)
+
+result_thresh <- DrStructure(data = data, phy = phy)
+```
+
+```{r}
+library(ggplot2)
+
+# Extract the AIC values from mkOuts
+mkAICs <- sapply(result_thresh$mkOuts, function(x) sapply(x, function(y) y$AIC))
+
+# Extract the AIC values from corOuts
+corAICs <- sapply(result_thresh$corOuts, function(x) x$AIC)
+
+# Extract the AIC values from threshOuts
+threshAICs <- sapply(result_thresh$threshOuts, function(x) x$AIC)
+
+# Combine the AIC values into a data frame
+aics_df <- data.frame(
+  Model = c(rep("mkOuts", length(mkAICs)), rep("corOuts", length(corAICs)), rep("threshOuts", length(threshAICs))),
+  Submodel = c(names(mkAICs), names(corAICs), names(threshOuts)),
+  AIC = c(mkAICs, corAICs, threshAICs)
+)
+
+# Create the plot using ggplot2
+ggplot(aics_df, aes(x = Submodel, y = AIC, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "AIC Comparison", x = "Submodel", y = "AIC")
+```
+
+```{r}
+# Create separate data frames for each model
+mk_df <- data.frame(
+  Model = rep("mkOuts", length(mkAICs)),
+  Submodel = names(mkAICs),
+  AIC = mkAICs
+)
+
+cor_df <- data.frame(
+  Model = rep("corOuts", length(corAICs)),
+  Submodel = names(corAICs),
+  AIC = corAICs
+)
+
+thresh_df <- data.frame(
+  Model = rep("threshOuts", length(threshAICs)),
+  Submodel = names(threshAICs),
+  AIC = threshAICs
+)
+
+# Combine the data frames using rbind()
+aics_df <- rbind(mk_df, cor_df, thresh_df)
+
+# Create the plot using ggplot2
+ggplot(aics_df, aes(x = Submodel, y = AIC, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "AIC Comparison", x = "Submodel", y = "AIC")
+```
+
+
+
+## Dunno what this is, defining thresold states?
+
+```{r}
+# make this into 
+
+thresh_stored3 <- list()
+thresh_stored4 <- list()
+thresh_stored5 <- list()
+
+
+for(k in 1:length(stored)) {
+# three hidden states minimum 
+states <- data.frame(unlist(stored[k]))
+colnames(states) <- c("pres.m3")
+
+thresh_dat3 <- case_when(
+  states$pres.m3 == 1 ~ "4&5&6",
+  states$pres.m3 == 0 ~ "1&2&3"
+)
+
+thresh_stored3[[k]] <- thresh_dat3
+
+# four hidden states 
+thresh_dat4 <- case_when(
+  states$pres.m3 == 1 ~ "5&6&7&8",
+  states$pres.m3 == 0 ~ "1&2&3&4"
+)
+thresh_stored4[[k]] <- thresh_dat4
+
+thresh_dat5 <- case_when(
+  states$pres.m3 == 1 ~ "6&7&8&9&10",
+  states$pres.m3 == 0 ~ "1&2&3&4&5"
+)
+thresh_stored5[[k]] <- thresh_dat5
+}
+```
+
+
+```{r}
+par(mfrow = c(1, 2))
+hist(stored[[4]], main = "pres/absence with cutoff: 0.3", xlab = "m3/m1 ratio", ylab = "no. of species")
+abline(v = 0.3, col = "red")
+
+hist(stored[[9]], main = "cutoff: 0.9", xlab = "m3/m1 ratio", ylab = "no. of species")
+abline(v = 0.9, col = "red")
+```
+
+# Testing all thresholds, Mk and corrHmm models
+
+```{r}
+threshOuts <- matrix(ncol = 9, nrow = length(se), data = list())
+mkOuts <- matrix(ncol = 3, nrow = length(se), data = list())
+#corOuts <- matrix(ncol = 3, nrow = length(se), data = list())
+genCorOuts <- matrix(ncol = 3, nrow = length(se), data = list())
+td <- make.treedata(tree = prim_tree, data = threshs[[1]])
+N_cutoff <- length(se)
+
+# this loop runs all possible threshold models for each cutoff (l)
+
+for(l in 1:N_cutoff) {
+  
+  ## making six
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[l]])
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat$stored..j..)
+  thresh_cutoff1 <- makeThreshold(temp_dat, 6)
+  six <- daMatrix(6)
+  
+    ### six all threshs
+  out <- rayDISC(phy = td$phy, thresh_cutoff1, rate.mat = six$hiThresh1P, root.p = root.obs(prop = prop(thresh_cutoff1), 6), model = "ER")
+  threshOuts[[l,1]]<- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff1, rate.mat = six$hiThresh2P, root.p = root.obs(prop = prop(thresh_cutoff1), 6), model = "ER")
+  threshOuts[[l,2]] <- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff1, rate.mat = six$hiThreshARD, root.p = root.obs(prop = prop(thresh_cutoff1), 6), model = "ER")
+  threshOuts[[l,3]] <- out
+  
+  ## eight 
+  
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[l]])
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat$stored..j..)
+  thresh_cutoff2 <- makeThreshold(temp_dat, 8)
+  eight <- daMatrix(8)
+  
+    ### eight all threshs
+  out <- rayDISC(phy = td$phy, thresh_cutoff2, rate.mat = eight$hiThresh1P, root.p = root.obs(prop = prop(thresh_cutoff2), 8), model = "ER")
+  threshOuts[[l,4]] <- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff2, rate.mat = eight$hiThresh2P, root.p = root.obs(prop = prop(thresh_cutoff2), 8), model = "ER")
+  threshOuts[[l,5]] <- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff2, rate.mat = eight$hiThreshARD, root.p = root.obs(prop = prop(thresh_cutoff2), 8), model = "ER")
+  threshOuts[[l,6]] <- out
+  
+  ## ten 
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[l]])
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat$stored..j..)
+  thresh_cutoff3 <- makeThreshold(temp_dat, 10)
+  ten <- daMatrix(10)
+  
+    ## ten all threshs
+    out <- rayDISC(phy = td$phy, thresh_cutoff3, rate.mat = ten$hiThresh1P, root.p = root.obs(prop = prop(thresh_cutoff3), 10), model = "ER")
+  threshOuts[[l,7]] <- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff3, rate.mat = ten$hiThresh2P, root.p = root.obs(prop = prop(thresh_cutoff3), 10), model = "ER")
+  threshOuts[[l,8]] <- out
+  
+  out <- rayDISC(phy = td$phy, thresh_cutoff3, rate.mat = ten$hiThreshARD, root.p = root.obs(prop = prop(thresh_cutoff3), 10), model = "ER")
+  threshOuts[[l,9]] <- out
+  
+}
+
+# this runs for all mk models 
+
+for(l in 1:N_cutoff) {
+  
+  # mks
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[l]])
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat$stored..j..)
+  #thresh_cutoff1 <- makeThreshold(temp_dat, 6)
+  #six <- daMatrix(6)
+  
+    ### six all threshs
+  out <- corHMM(tdTemp$phy, temp_dat,rate.cat =1, model = "ER")
+  mkOuts[[l,1]]<- out
+  
+  out <- corHMM(tdTemp$phy, temp_dat, rate.cat = 1, model = "SYM")
+  mkOuts[[l,2]]<- out
+  
+  out <- corHMM(tdTemp$phy, temp_dat, rate.cat = 1, model = "ARD")
+  mkOuts[[l,3]]<- out
+  
+}
+
+
+# and this Generalized corHMM models
+for(l in 1:N_cutoff) {
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[l]])
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat$stored..j..)
+  
+  # 6 total states (3 hidden states)
+  out <- corHMM(tdTemp$phy, temp_dat, rate.cat = 3)
+  genCorOuts[[l,1]] <- out
+  
+  # 8 total states (4 hidden states)
+  out <- corHMM(tdTemp$phy, temp_dat, rate.cat = 4)
+  genCorOuts[[l,2]] <- out
+  
+  # 10 total states (5 hidden states)
+  out <- corHMM(tdTemp$phy, temp_dat, rate.cat = 5)
+  genCorOuts[[l,3]] <- out
+}
+
+genCorAICs <- matrix(ncol = 3, nrow = N_cutoff)
+for(i in 1:N_cutoff){
+  for(j in 1:3){
+    x <- genCorOuts[[i,j]]
+    genCorAICs[[i,j]] <- x$AIC
+  }
+}
+
+
+
+threshAICs <- matrix(ncol = 9, nrow = N_cutoff)
+for(i in 1:N_cutoff){
+  for(j in 1:9){
+    x <- threshOuts[[i,j]]
+    threshAICs[[i,j]] <- x$AIC
+  }
+}
+mkAICs <- matrix(ncol = 3, nrow = N_cutoff)
+for(i in 1:N_cutoff){
+  for(j in 1:3){
+    x <- mkOuts[[i,j]]
+    mkAICs[[i,j]] <- x$AIC
+  }
+}
+
+genCorAICs_df <- data.frame(genCorAICs)
+colnames(genCorAICs_df) <- c("6states", "8states", "10states")
+threshAICs_df <- data.frame(threshAICs)
+mkAICs_df <- data.frame(mkAICs)
+colnames(threshAICs_df) <- c("61P","62P","6ARD", "81P","82P", "8ARD", "101P", "102P", "10ARD")
+colnames(mkAICs_df) <- c("ER","SYM","ARD")
+
+full <- cbind(threshAICs_df, mkAICs_df[c("ER", "SYM", "ARD")], genCorAICs_df)
+rownames(full) <- se
+
+saveRDS(full, file = "everyrun_threshmolar.rds")
+```
+
+# now need to plot a heatmap across all models and cutoffs. 
+
+```{r}
+full <- readRDS("everyrun_threshmolar.rds")
+# Calculate the minimum AIC for each cutoff (row)
+min_aic <- apply(full, 1, min)
+
+# Calculate the delta AIC values for each model compared to the minimum AIC of its cutoff
+delta_aic <- apply(full, 2, function(col) col - min_aic)
+
+
+# Define the threshold for bad models
+bad_threshold <- 20
+
+colnames(delta_aic) <- c("threshold-6states-1P", "threshold-6states-2P", "threshold-6states-ARD", "threshold-8states-1P", "threshold-8states-2P", "threshold-8states-ARD","threshold-10states-1P", "threshold-10states-2P", "threshold-10states-ARD", "MkER-2states", "MkSYM-2states", "MkARD-2states", "HMM-6states", "HMM-8states", "HMM-10states")
+
+
+## only the 0.7 - 1 range of values
+delta_aic <- delta_aic[8:11,]
+
+colors <- colorRampPalette(rev(brewer.pal(n = 11, name = "RdYlBu")))(100)
+
+# Define new breaks
+breaks <- c(
+  seq(0, 2, length.out = 40),    # Very fine granularity for 0-2
+  seq(2.1, 5, length.out = 30),  # Fine granularity for 2.1-5
+  seq(5.1, 10, length.out = 20), # Medium granularity for 5.1-10
+  seq(10.1, 20, length.out = 10), # Less granularity for 10.1-20
+  seq(20.1, max(delta_aic), length.out = 5) # Few breaks for values above 20
+)
+
+
+# pheatmap
+x <- pheatmap(delta_aic,
+              cluster_rows = F, 
+              cluster_cols = F,
+              breaks = breaks, 
+              color = colors, 
+              main = "", 
+              legend_breaks = c(0, 2, 5, 10, 20, max(delta_aic)),
+              legend_labels = c("0", "2", "5", "10", "20", paste0(">", round(max(delta_aic)))),
+              fontsize = 12)
+```
+## higher quality
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+
+# Read and prepare data
+full <- readRDS("everyrun_threshmolar.rds")
+min_aic <- apply(full, 1, min)
+delta_aic <- apply(full, 2, function(col) col - min_aic)
+delta_aic <- delta_aic[8:11,]
+
+# Set column names
+colnames(delta_aic) <- c("threshold-6states-1P", "threshold-6states-2P", "threshold-6states-ARD", 
+                         "threshold-8states-1P", "threshold-8states-2P", "threshold-8states-ARD",
+                         "threshold-10states-1P", "threshold-10states-2P", "threshold-10states-ARD", 
+                         "MkER-2states", "MkSYM-2states", "MkARD-2states", 
+                         "HMM-6states", "HMM-8states", "HMM-10states")
+
+# Define breaks
+breaks <- c(0, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 5, 10, 20, 30, 40)
+
+# Create a color mapping
+color_mapping <- magma(n = length(breaks) - 1, begin = 1, end = 0)
+
+# Create the heatmap without legend but with text labels
+heatmap_plot <- pheatmap(delta_aic,
+                         cluster_rows = FALSE,
+                         cluster_cols = FALSE,
+                         breaks = breaks,
+                         color = color_mapping,
+                         main = "Model Comparison (Delta AIC)",
+                         display_numbers = TRUE,
+                         number_format = "%.2f",
+                         fontsize_number = 8,  # Adjust this value to change text size
+                         legend = FALSE,  # Turn off the default legend
+                         fontsize = 10)
+
+# Create a custom legend
+legend_image <- as.raster(matrix(rev(color_mapping), ncol=1))
+plot_legend <- rasterGrob(legend_image, interpolate = TRUE)
+
+# Create labels for the legend
+legend_labels <- as.character(breaks)
+label_positions <- seq(0, 1, length.out = length(legend_labels))
+
+# Combine the heatmap and the custom legend
+grid.newpage()
+combined_plot <- grid.arrange(
+  heatmap_plot$gtable,
+  arrangeGrob(
+    plot_legend,
+    right = textGrob(legend_labels, x = 1, y = label_positions, just = "left", gp = gpar(cex = 0.8))
+  ),
+  ncol = 2,
+  widths = c(4, 1)  # Adjust these values to change the relative sizes
+)
+
+#ggsave("improved_heatmap.pdf", x$gtable, width = 10, height = 5, units = "in")
+```
+## just the legend 
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+library(grid)
+library(gridExtra)
+library(viridis)
+
+# Define breaks
+breaks <- c(0, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 5, 10, 20, 30, 40)
+
+# Create a color mapping
+color_mapping <- viridis(n = length(breaks) - 1, begin = 1, end = 0)
+
+# Create the heatmap without legend
+heatmap_plot <- pheatmap(delta_aic,
+                         cluster_rows = FALSE,
+                         cluster_cols = FALSE,
+                         breaks = breaks,
+                         color = color_mapping,
+                         main = "Model Comparison (Delta AIC)",
+                         display_numbers = TRUE,
+                         number_format = "%.2f",
+                         fontsize_number = 8,
+                         legend = FALSE,
+                         fontsize = 10, 
+                         number_color = "white")
+
+
+# Save the plot
+ggsave("heatmap3.pdf", heatmap_plot, width = 16, height = 9, units = "in")
+```
+
+
+
+```{r}
+# Find the minimum non-zero value and the 75th percentile
+min_non_zero <- min(delta_aic[delta_aic > 0])
+q75 <- quantile(delta_aic, 0.75)
+
+# Create breaks with focus on the competitive range
+breaks <- c(0,
+            min_non_zero,
+            seq(min_non_zero, q75, length.out = 6),
+            q75,
+            max(delta_aic))
+
+# Round the breaks for cleaner labels
+breaks <- round(breaks, 2)
+breaks <- unique(breaks) # Remove any duplicate breaks after rounding
+library(RColorBrewer)
+
+# Create a color palette with more distinction in the lower range
+colors <- colorRampPalette(c("darkgreen", "green", "yellow", "orange", "red", "darkred"))(length(breaks) - 1)
+
+# Create the heatmap
+pheatmap(delta_aic,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         breaks = breaks,
+         color = colors,
+         main = "Model Comparison (Delta AIC)",
+         display_numbers = FALSE,
+         number_format = "%.2f",
+         fontsize_number = 8,
+         legend_breaks = breaks,
+         legend_labels = as.character(breaks),
+         fontsize = 10)
+```
+
+```{r}
+library(RColorBrewer)
+
+# Define breaks
+breaks <- c(0, 0.1, 0.5, seq(from = 1, to = 57))
+
+# Create a color palette
+colors <- viridis(n = length(breaks), begin = 0)
+
+# Create the heatmap
+x <- pheatmap(delta_aic,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         breaks = breaks,
+         color = colors,
+         main = "Model Comparison (Delta AIC)",
+         display_numbers = FALSE,
+         number_format = "%.2f",
+         fontsize_number = 8,
+         legend_breaks = breaks,
+         legend_labels = as.character(breaks),
+         fontsize = 10)
+
+x
+
+ggsave("heatmap2.pdf", x, width = 10, height = 8, units = "in")
+
+```
+
+
+
+```{r}
+x <- pheatmap((t(full)), cluster_rows = F, cluster_cols = F, 
+              legend_breaks = c(20, 30, 40, 50, 60, 70, 80, 90, 100, max(full)),
+              main = "", legend_labels = c("20", "30", "40", "50", "60", "70", "80", "90", "100", "AIC\n"), 
+              legend = TRUE, fontsize = 16)
+
+pdf(file = "../plots/threshmolar_heatmap_5.pdf", width = 14.06, height = 9.06)
+print(x)
+dev.off()
+```
+
+
+```{r}
+# Find the minimum AIC value
+min_aic <- min(full)
+
+# Calculate deltaAIC values
+delta_aic <- full - min_aic
+
+# Plot the heatmap using deltaAIC values
+pheatmap::pheatmap(delta_aic, cluster_rows = F, cluster_cols = F, 
+                   main = "DeltaAIC Heatmap", legend = TRUE, legend_breaks = c(5, 10, 20, 30, 40, 50, 60, max(full)), legend_labels = c("5", "10", "20", "30", "40", "50", "60", "deltaAIC\n"))
+```
+
+
+```{r}
+# Convert rownames to character format
+rownames(full) <- as.character(rownames(full))
+
+# Set the PDF dimensions
+pdf(file = "../plots/threshmolar_heatmap_42224.pdf", width = 9.09, height = 5.06)
+
+library(pheatmap)
+
+# Create the heatmap
+pheatmap(delta_aic, cluster_rows = F, cluster_cols = F,
+         main = "DeltaAIC Heatmap",
+         annotation_row = data.frame(Cutoff = rownames(full)),
+         annotation_names_row = TRUE,
+         annotation_legend = TRUE,
+         legend = TRUE)
+
+# Close the PDF device
+dev.off()
+```
+
+```{r}
+# Create a vector with the desired cutoff values
+cutoff_values <- c("0", "0.1", "0.3", "0.5", "Cutoff 5")
+
+# Set the PDF dimensions
+pdf(file = "../plots/threshmolar_heatmap_42224.pdf", width = 9.09, height = 5.06)
+
+library(pheatmap)
+
+# Create the heatmap
+pheatmap(delta_aic, cluster_rows = F, cluster_cols = F,
+         main = "DeltaAIC Heatmap",
+         annotation_row = data.frame(Cutoff = cutoff_values),
+         annotation_names_row = TRUE,
+         annotation_legend = TRUE,
+         legend = TRUE)
+
+# Close the PDF device
+dev.off()
+```
+
+
+
+
+getting a better heatmap 
+```{r}
+library(ggplot2)
+library(reshape2)
+
+# Create data frames for threshAICs and mkAICs
+threshAICs_df <- data.frame(threshAICs)
+mkAICs_df <- data.frame(mkAICs)
+
+# Set column names for threshAICs_df and mkAICs_df
+colnames(threshAICs_df) <- c("61P", "62P", "6ARD", "81P", "82P", "8ARD", "101P", "102P", "10ARD")
+colnames(mkAICs_df) <- c("ER", "SYM", "ARD")
+
+# Combine threshAICs_df and mkAICs_df
+full <- cbind(threshAICs_df, mkAICs_df[c("ER", "SYM", "ARD")])
+rownames(full) <- se
+
+# Calculate the minimum AIC value for each row
+min_AIC <- apply(full, 1, min)
+
+# Calculate the delta AIC by subtracting the minimum AIC value from each value in the row
+delta_AIC <- sweep(full, 1, min_AIC, "-")
+
+# Combine the delta AIC values with the original data frame
+full_delta <- cbind(full, delta_AIC)
+
+# Save the combined data frame with delta AIC as RDS
+saveRDS(full_delta, file = "everyrun_threshmolar_delta.rds")
+
+# Print the last few rows of the combined data frame with delta AIC
+tail(full_delta)
+
+# Convert the data frame to long format for plotting
+full_delta$se  <- se
+full_melt <- melt(full_delta, id.vars = "se", variable.name = "variable", value.name = "value")
+
+# Create the heatmap using ggplot2
+ggplot(full_melt, aes(x = variable, y = se, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "blue", high = "red", name = "Delta AIC") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank()) +
+  labs(title = "Heatmap of Delta AIC Values")
+```
+
+```{r}
+# Convert the data frame to long format for plotting
+full_melt <- melt(full)
+
+# Create the heatmap using ggplot2
+ggplot(full_melt, aes(x = variable, y = Var1, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "blue", high = "red", name = "AIC") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank()) +
+  coord_fixed() +
+  labs(title = "Heatmap of AIC Values")
+```
+
+```{r}
+hist(dat$ratio, main = "ratio cutoffs", xlab = "M3/M1 ratio")
+abline(v = se, col=colors(1:se), lwd=3, lty=2)
+```
+
+M3/ M1 vs M2/M1
+
+
+oop  (fix Thurs)
+```{r}
+# Corrected script
+
+# Set the total number of states
+totalStates <- 10
+
+# Generate the sequence of rate categories to test
+tests <- seq(2, (totalStates/2))
+
+# Initialize the matrix to store the corHMM outputs
+N_cutoff <- length(threshs)
+corOuts <- matrix(ncol = length(tests), nrow = N_cutoff)
+
+# Loop over each threshold
+for(k in 1:length(threshs)) {
+  # Create the treedata object
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[k]])
+  
+  # Create a data frame with the tip labels and the second column of tdTemp$dat
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat[,2])
+  
+  # Loop over each rate category
+  for(j in 1:length(tests)) {
+    # Run corHMM with the current rate category
+    cor2 <- corHMM(phy = tdTemp$phy, data = temp_dat, rate.cat = tests[j])
+    corOuts[k, j] <- list(cor2)
+  }
+}
+
+```
+
+corrected, shortned version 
+(maybe?)
+
+```{r}
+# Initialize the list to store the corHMM outputs
+N_cutoff <- length(threshs)
+corOuts <- vector("list", N_cutoff)
+for(i in 1:N_cutoff){
+  corOuts[[i]] <- vector("list", length(tests))
+}
+
+# Loop over each threshold
+for(k in 1:length(threshs)) {
+  # Create the treedata object
+  tdTemp <- make.treedata(tree = prim_tree, data = threshs[[k]])
+  
+  # Create a data frame with the tip labels and the second column of tdTemp$dat
+  temp_dat <- data.frame(tdTemp$phy$tip.label, tdTemp$dat[,2])
+  
+  # Loop over each rate category
+  for(j in 1:length(tests)) {
+    # Run corHMM with the current rate category
+    cor2 <- corHMM(phy = tdTemp$phy, data = temp_dat, rate.cat = tests[j])
+    corOuts[[k]][[j]] <- cor2
+  }
+}
+
+```
+
+take out the AICs 
+
+```{r}
+# Initialize the matrix to store the AIC values
+corAICs <- matrix(ncol = length(tests), nrow = N_cutoff)
+
+# Extract the AIC values from the corHMM outputs
+for(i in 1:N_cutoff){
+  for(j in 1:length(tests)){
+    x <- corOuts[i,j]
+    corAICs[i,j] <- x$AIC
+  }
+}
+
+# Combine the corAICs matrix with the selected columns from corOU
+full <- cbind(corAICs, corOU[c("ER", "SYM", "ARD")])
+rownames(full) <- se
+
+# Print the full matrix
+full
+
+# Calculate the delta values for each row
+full_delta <- apply(full,1, function(x) x-min(x))
+
+# Transpose and print the full_delta matrix
+t(full_delta)
+```
+
+
+```{r}
+plot(dat$ratio_m1, dat$ratio_m3)
+```
+
+
+```{r}
+png(file="~/Documents/StructuredHiddenMarkov/plots/empiricalresults.png",
+width=800, height=500)
+```
+
+
+```{r}
+hist(stored[[1]])
+hist(stored[[2]])
+hist(stored[[3]])
+hist(stored[[4]])
+hist(stored[[5]])
+```
+
+
+
+```{r}
+# "classic" root function
+root.obs <- function(prop, bins, cutoff=3.1){
+  qq <- qnorm(prop, 0, 1)
+  x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
+  x <- c(x[2:(length(x)-1)],1) - c(0,x[2:(length(x)-1)])
+  P <- c(0, x,0)
+  P <- P/sum(P) #Make sure it sums to 1
+  return(P)
+}
+
+#proportion fx .. dunno if this is really needed for these analyses but here we are 
+prop <- function(data) {
+  x = table(unlist(data[,2]))
+  prop_1 <- x[1] / (x[1]+x[2])
+  return(prop_1)
+}
+```
+
+
+# Analyses
+
+
+```{r}
+# transforming thresh data 
+
+corr_run3 <- list()
+corr_run4 <- list()
+corr_run5 <- list()
+thresh_run3  <- list()
+thresh_run4 <- list()
+thresh_run5 <- list()
+corr_store4 <- list()
+corr_store5 <- list()
+td <- make.treedata(prim_tree, p_dat)
+
+
+
+for(m in 1:length(stored)) {
+  # three 
+  x <- data.frame(p_dat$taxa, unlist(stored[m]))
+  run <- corHMM(phy = td$phy, data = x, rate.cat =3, model = "ER")
+  corr_run3[[m]] <- run
+  
+  # three thresh
+  t <- data.frame(p_dat$taxa, unlist(thresh_stored3[m]))
+  run2 <- rayDISC(phy = td$phy, t, rate.mat = six, root.p = root.obs(prop = prop(t), 6))
+  thresh_run3[[m]] <- run2
+  
+  # just ER corhmm
+  g <- corHMM(phy = td$phy, data = x, rate.mat = ER_six, rate.cat = 3)
+  
+  # four 
+  run <- corHMM(phy = td$phy, data = x, rate.cat = 4, model = "ER")
+  corr_run4[[m]] <- run
+  
+  # four thresh
+  r <- data.frame(p_dat$taxa, unlist(thresh_stored4[m]))
+  runThresh <- rayDISC(phy = td$phy, r, rate.mat = eight_thresh, root.p = root.obs(prop = prop(r), 8))
+  thresh_run4[[m]] <- runThresh
+  
+    # five 
+  runCor <- corHMM(phy = td$phy, data = x, rate.cat =5, model = "ER")
+  corr_run5[[m]] <- runCor
+  
+  # five thresh
+    v <- data.frame(p_dat$taxa, unlist(thresh_stored5[m]))
+    runThresh <- rayDISC(phy = td$phy, v, rate.mat = ten_thresh, root.p = root.obs(prop = prop(v), 10))
+  thresh_run5[[m]] <- runThresh
+}
+
+three_aics <- data.frame(unlist(corr_run3), unlist(thresh_run3))
+four_aics <- data.frame(unlist(corr_run4), unlist(thresh_run4))
+five_aics <- data.frame(unlist(corr_run5), unlist(thresh_run5))
+
+par(mfrow = c(2,1))
+boxplot(t(three_aics), main= "6 state threshold AICs with m3 cutoffs")
+boxplot(t(three_aics$unlist.corr_run3.), main = "6 state corHMM ER AICs with m3 cutoffs")
+
+par(mfrow = c(2,1))
+boxplot(t(four_aics$unlist.thresh_run4.), main= "8 state threshold AICs with m3 cutoffs")
+boxplot(t(four_aics$unlist.corr_run4.), main = "8 state corHMM ER AICs with m3 cutoffs")
+
+par(mfrow = c(2,1))
+boxplot(t(five_aics$unlist.thresh_run5.), main= "10 state threshold AICs with m3 cutoffs")
+boxplot(t(five_aics$unlist.corr_run5.), main = "10 state corHMM ER AICs with m3 cutoffs")
+```
+
+```{r}
+hist(dat$m3.md) 
+abline(v=10, col = "red")
+```
+
+
+
+```{r}
+# subsetting the data
+
+corr_2 <- corHMM(phy = td$phy, data = p_dat, rate.cat = 1)
+
+corr_2ER <- corHMM(phy = td$phy, data = p_dat, rate.cat = 1, model = "ER")
+
+corr_4 <- corHMM::corHMM(phy = td$phy, data = p_dat, rate.cat = 2)
+
+corr_4ER <- corHMM::corHMM(phy = td$phy, data = p_dat, rate.cat = 2, model = "ER")
+
+corr_8 <- corHMM(phy = td$phy, data = p_dat, rate.cat = 4)
+
+corr_8ER <- corHMM(phy = td$phy, data = p_dat, rate.cat =4, model = "ER")
+
+corr_10 <- corHMM(phy = td$phy, data = p_dat, rate.cat = 5)
+
+corr_10ER <- corHMM(phy = td$phy, data = p_dat, rate.cat = 5, model = "ER")
+
+thresh_8 <- rayDISC(phy = td$phy, thresh_dat4, rate.mat = eight, root.p = root.obs(prop = prop(thresh_dat4), 8))
+
+thresh_10 <- rayDISC(phy = td$phy, thresh_dat5, rate.mat = ten, root.p = root.obs(prop= prop(thresh_dat5), 10))
+
+x <- data.frame(c(corr_2$AIC, corr_2ER$AIC, corr_4$AIC, corr_4ER$AIC, corr_8$AIC, corr_8ER$AIC, corr_10$AIC, corr_10ER$AIC, thresh_8$AIC, thresh_10$AIC), c("2","2ER","4","4ER","8","8ER","10","10ER", "8t", "10t"))
+
+names(x) <- c("AIC", "model")
+
+x$model <- as.factor(x$model)
+
+# this kinda sucks but here we are
+plot(x$model, log(x$AIC))
+
+```
+
+
+Okay so from the first run of this it seems like a couple things are true 
+
+- threshold outperforms default corhmm across state no. 
+- it outperforms, but to a lesser extent, ER corhmm models of the same state no.
+- it doesn't seem to be as obviously prefered compared to the sims 
+- can we visualize this in a different way, heatmap maybe? 
+
+
+# liabilities and assorted bullshit 
+
+```{r}
+#ray_thresh$phy$edge.length <- unlist(ray_thresh$phy$edge.length)
+#paintBranches(ray_thresh$phy, ray_thresh$phy$edge.length, state = ray_thresh$states)
+
+plotRECON(ray_thresh$phy, ray_thresh$states, piecolors = 
+            c("yellow", "cornflowerblue", "orange", "dark blue"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+          show.tip.label = TRUE, label.offset = 0.4, title = "threshold molar",file = "threshEX.pdf", type = "fan")
+
+#pure discrete plot
+#edgey <- unlist(corr_two$phy$edge.length)
+#paintBranches(corr_two$phy, edge = corr_two$phy$edge.length, state = corr_two$states)
+
+corr_two_plot <- plotRECON(corr_two$phy, corr_two$states, piecolors = 
+                             c( "cornflowerblue", "orange"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+                           show.tip.label = TRUE, label.offset = 0.4, title = "discrete molar",file = "discreteEX.pdf", type = "fan")
+
+corr_four_plot <- plotRECON(corr_d$phy, corr_d$states, piecolors = 
+                              c("yellow", "cornflowerblue", "orange", "dark blue"), cex = 0.40, pie.cex = 0.25, height = 50, width = 12, 
+                            show.tip.label = TRUE, label.offset = 0.4, title = "corr 4-state molar",file = "corrEX.pdf", type = "fan")
+
+
+
+# hidden state liability vs ratio (m2 / m1) vs (m3 / m1)
+
+
+# liabilities are the posterior probabilities of being in one of the hidden states 
+
+
+#subestting the orignal dataset 
+unqNames <- unique(td$phy$tip.label)
+
+just <- subset(dat, Row.names %in% unqNames)
+
+plot(just$ratio_m3, thresh_10$states)
+
+liabs <- thresh_10$states[,(c(1,3,4,5,6,7,8,9,2))] %*% 1:9
+liabs <- thresh_10$tip.states %*% 1:10
+
+plot(thresh_10$states[,(c(1,3,4,5,6,7,8,9,2))] %*% 1:9, just$ratio_m3)
+
+# this is for presence or absence
+
+# mcmc threshold 
+library(MCMCglmmRAM)
+#making dataset ()
+
+
+# need to compare the real 
+mcmc_dat <- subset()
+
+# need to define this I dunno how 
+
+
+
+
+## prior <- 
+  
+mcmc.thresh <- MCMCglmm(cbind() ~ trait -1, burnin =10000, nitt = 2e+05,
+                          random = ~corg(trait):animal, rcov=~corg(trait):units, pedigree= td$phy, 
+                          reduced = TRUE, data = td_glm,  prior = prior1, pr = TRUE, thin = 100,
+                          pl = TRUE, family = c("categorical", "gaussian", "gaussian", "gaussian", "gaussian"))
+
+y_dat <- as.factor(setNames(d_dat[,1], rownames(d_dat)))
+dotTree(td$phy, y_dat, colors = c("blue","red"))
+
+```
