@@ -6,7 +6,7 @@ library(ape)
 # assume is a threshold trait -- an actually continuous trait that relies on 
 setwd("../data/")
 #prim_tree <- read.nexus("tree.nex")
-prim_tree <- read.nexus("prim_10k.nex")
+prim_tree <- read.nexus("../data/prim_10k.nex")
 
 # primate dataset
 #dat <- read.csv("Plavcan_Lower Molar_All.csv")

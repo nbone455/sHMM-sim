@@ -460,14 +460,13 @@ library(dplyr)
 library(ape)
 library(treeplyr)
 
-setwd("~/Documents/hiThresh power")
 #prim_tree <- read.nexus("tree.nex")
-prim_tree <- read.nexus(file = "../prim_10k.nex")
+prim_tree <- read.nexus(file = "../data/prim_10k.nex")
 
 # primate dataset
 #dat <- read.csv("Plavcan_Lower Molar_All.csv")
 # try with these, use the ratio as cutoff 
-dat <- read.csv("../Data_edited species names.csv")
+dat <- read.csv("../data//Data_edited species names.csv")
 head(dat)
 dat[is.na(dat)] <- 0
 ```
@@ -1512,3 +1511,152 @@ y_dat <- as.factor(setNames(d_dat[,1], rownames(d_dat)))
 dotTree(td$phy, y_dat, colors = c("blue","red"))
 
 ```
+
+
+
+
+# plot tree 
+
+```{r}
+library(phytools)
+library(ggplot2)
+library(patchwork)
+
+# Make threshold data function
+make_threshold_data <- function(tree, data, cutoff) {
+  pres <- numeric(length(data$Row.names))
+  names <- character(length(data$Row.names))
+  
+  for(i in 1:length(data$Row.names)) {
+    if(data$ratio[i] <= cutoff){
+      pres[i] <- 0
+      names[i] <- data$Row.names[i]
+    } else {
+      pres[i] <- 1 
+      names[i] <- data$Row.names[i]
+    }
+  }
+  
+  p_dat <- data.frame(taxa = names, pres.m3 = pres)
+  return(p_dat)
+}
+
+# Set up PDF for output
+pdf("threshold_trees.pdf", width=20, height=15)
+
+# Set up plotting area for multiple trees
+par(mfrow=c(3,4))
+
+# Vector of thresholds
+se <- c(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.70, 0.80, 0.9, 1)
+
+# Plot each threshold
+for(i in 1:length(se)) {
+  # Create data for this threshold
+  thresh_data <- make_threshold_data(prim_tree, dat, se[i])
+  
+  # Create treedata object
+  td <- make.treedata(prim_tree, thresh_data)
+  
+  # Set up the factor for plotting
+  state_factor <- factor(td$dat$pres.m3)
+  names(state_factor) <- td$phy$tip.label
+  
+  # Plot tree
+  plot(td$phy, show.tip.label=FALSE, main=paste0("Threshold: ", se[i]))
+  cols <- c("red", "blue")[as.numeric(state_factor)]
+  tiplabels(pch=19, col=cols, cex=0.8)
+  
+  # Add legend to first plot only
+  if(i == 1) {
+    legend("topright", 
+           legend=c("Absent", "Present"),
+           pch=19, 
+           col=c("red", "blue"),
+           cex=0.8)
+  }
+  
+  # Print proportion of each state
+  prop_table <- table(state_factor)/length(state_factor)
+  mtext(paste0("Absent: ", round(prop_table[1]*100, 1), "%",
+               " Present: ", round(prop_table[2]*100, 1), "%"),
+        side=1, line=1, cex=0.7)
+}
+
+dev.off()
+
+# Create summary information
+threshold_summary <- data.frame(
+  Threshold = se,
+  n_present = numeric(length(se)),
+  n_absent = numeric(length(se)),
+  prop_present = numeric(length(se))
+)
+
+for(i in 1:length(se)) {
+  thresh_data <- make_threshold_data(prim_tree, dat, se[i])
+  tab <- table(thresh_data$pres.m3)
+  threshold_summary$n_absent[i] <- tab["0"]
+  threshold_summary$n_present[i] <- tab["1"]
+  threshold_summary$prop_present[i] <- tab["1"] / sum(tab)
+}
+
+print(threshold_summary)
+```
+
+```{r}
+library(phytools)
+
+# Pick a threshold (e.g., 0.7)
+threshold <- 0.7
+
+# Create presence/absence data for this threshold
+pres <- numeric(length(dat$Row.names))
+names <- character(length(dat$Row.names))
+
+for(i in 1:length(dat$Row.names)) {
+  if(dat$ratio[i] <= threshold){
+    pres[i] <- 0
+    names[i] <- dat$Row.names[i]
+  } else {
+    pres[i] <- 1 
+    names[i] <- dat$Row.names[i]
+  }
+}
+
+# Create data frame
+p_dat <- data.frame(taxa = names, pres.m3 = pres)
+
+# Make treedata object
+td <- make.treedata(prim_tree, p_dat)
+
+# Create factor for states
+state_factor <- factor(td$dat$pres.m3)
+names(state_factor) <- td$phy$tip.label
+
+# Plot tree
+pdf("single_thresh.pdf", width=10, height=9)
+plot(td$phy, show.tip.label=FALSE, 
+     main=paste0("M3 Presence/Absence (Threshold = ", threshold, ")"))
+
+# Add colored tip points
+cols <- c("red", "blue")[as.numeric(state_factor)]
+tiplabels(pch=19, col=cols, cex=0.8)
+
+# Add legend
+legend("bottomleft", 
+       legend=c("M3 Absent", "M3 Present"),
+       pch=19, 
+       col=c("red", "blue"),
+       cex=0.8)
+
+# Add proportion information
+prop_table <- table(state_factor)/length(state_factor)
+mtext(paste0("Absent: ", round(prop_table[1]*100, 1), "%",
+             " Present: ", round(prop_table[2]*100, 1), "%"),
+      side=1, line=1)
+
+dev.off()
+
+```
+
