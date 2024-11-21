@@ -12,6 +12,10 @@ if(length(missing_packages) > 0) {
 # Set seed for reproducibility 
 set.seed(42)
 
+# how many simulations? 
+nsim = 50
+
+
 # Add validation
 stopifnot(is.numeric(nsim), nsim > 0)
 
