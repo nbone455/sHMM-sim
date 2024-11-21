@@ -1,5 +1,7 @@
-# When the true model is an Mk model, we hope that the hiThresh model is not ever favored.
+# This script tests whether a threshold model is incorrectly favored when data is generated under an Mk model
+# We simulate discrete character data and compare model fit between Mk and threshold models
 
+# Load required R packages and check for missing ones that need installation
 required_packages <- c("ape", "treeplyr", "textshape", "vctrs", "stringr", 
                       "phytools", "dplyr", "corHMM", "geiger", "ggplot2", "gplots")
 
@@ -19,7 +21,18 @@ nsim = 50
 # Add validation
 stopifnot(is.numeric(nsim), nsim > 0)
 
+
+# Function definitions:
 #old matrix maker functions from corhmm
+
+# Creates rate matrices for different model types (ER, SYM, ARD)
+# Parameters:
+#   rate.cat: Number of rate categories
+#   hrm: Boolean for hidden rates model 
+#   ntraits: Number of traits
+#   nstates: Number of character states
+#   model: Model type ("ER", "SYM", "ARD")
+
 rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
   if (hrm == TRUE) {
     k = 2
@@ -200,6 +213,12 @@ rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL
   }
   return(rate.mat.index)
 }
+
+# Function to remove specified parameters from a rate matrix
+# Parameters:
+#   rate.mat.index: Rate matrix to modify
+#   drop.par: Vector of parameters to remove
+
 rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   if(is.null(rate.mat.index)){
     stop("Rate matrix needed.  See mat.maker to create one.\n")
@@ -225,7 +244,12 @@ rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   return(rate.mat.index)
 }
 
-#root function
+# Calculate root state frequencies using a normal distribution
+# Parameters:
+#   prop: Proportion for state 1
+#   bins: Number of bins/states
+#   cutoff: Standard deviation cutoff for normal distribution
+
 root.obs <- function(prop, bins, cutoff=3.1){
   qq <- qnorm(prop, 0, 1)
   x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
@@ -235,14 +259,21 @@ root.obs <- function(prop, bins, cutoff=3.1){
   return(P)
 }
 
-#proportion function
+# Calculate proportion of state 1 in the data
+# Parameters:
+#   data: Data frame containing character states
+
 prop <- function(data) {
   x = table(unlist(data[,2]))
   prop_1 <- x[1] / (x[1]+x[2])
   return(prop_1)
 }
 
-#BIC function
+# Calculate Bayesian Information Criterion
+# Parameters:
+#   loglik: Log likelihood of the model
+#   k: Number of parameters
+#   n: Sample size (number of taxa)
 bic <- function(loglik, k, n) {
   ##where k is number of states 
   ##and n is number of taxa (up for debate lol)
@@ -255,13 +286,14 @@ bic <- function(loglik, k, n) {
 # making all matrices
 
 ## lists to contain the 200 sims for each Markov model and the threshold model
+# Create separate lists for ARD, ER, SYM and threshold models
 matrix_listARD <- replicate(n=8, expr=list())
 matrix_listER <- replicate(n=8, expr=list())
 matrix_listSYM <- replicate(n=8, expr=list())
 matrix_listThreshER <- replicate(n=8, expr=list())
 matrix_listThreshARD <- replicate(n=8, expr=list())
 
-## number of traits (1-7, might need to expand this later but I will need to fix how I store the matrices)
+# Create and populate rate matrices for different numbers of states
 for (i in  1:8){
   #ARD
   m1 <- rate.mat.maker(ntraits = 1, nstates = i, model = "ARD", hrm = F)
@@ -281,7 +313,9 @@ for (i in  1:8){
 }
 
 
-## two doesnt work for a thresh model (where would the absorbing states be :^) ) 
+# Define threshold model structures
+# These matrices represent ordered state transitions where only adjacent states can transition
+# Two state model isn't applicable for threshold model
 
 two <- matrix_listThreshER[[2]]
 
@@ -566,17 +600,19 @@ mk_20 <- rate.mat.maker(ntraits=1, nstates = 20, model = "ER", hrm = F)
 sim_aic <- list()
 sim_bic <- list()
 
+# Main simulation loop
 for (i in 1:nsim) {
   count <- as.character(i)
   rate <- 0.4
   
-  #trees
-  tree50 <- sim.bdtree(b=1,d = 0,n = 50)
+  # Simulate trees of different sizes (50, 100, 200 taxa)  tree50 <- sim.bdtree(b=1,d = 0,n = 50)
   tree100 <- sim.bdtree(b=1, d=0, n=100)
   tree200 <- sim.bdtree(b=1,d=0, n=200)
   
 
-  # sim discrete data
+  # Simulate discrete character data  
+    # Resimulate if only one state is present to ensure variable data
+  
   root_1 <- c(1,2)
   r0 <- sample(root_1, 1)
   Q <- matrix_listER[[2]] * rate
@@ -634,7 +670,9 @@ for (i in 1:nsim) {
   
   
   
-  #splitting
+  # Create different state groupings for threshold model analysis
+  # Split states into groups based on threshold model structure
+  
   #50
   th50_df <- data.frame(thresh50)
   th50_four <- case_when(
@@ -769,7 +807,8 @@ for (i in 1:nsim) {
   th200_20 <- data.frame(tree200$tip.label, th200_20)
   
   
-  # for question 2. 
+  # Fit models and calculate AIC/BIC differences
+  # Compare fit between threshold and Mk models
   
  
   # 4 thresh/Mk
@@ -971,7 +1010,8 @@ for (i in 1:nsim) {
   
 }
 
-## AIC 
+
+# Save final results
 all_sims <- sim_aic
 setwd("~/heatmap_results/")
 saveRDS(all_sims, file = "heatmap2_aic_results.rds")
