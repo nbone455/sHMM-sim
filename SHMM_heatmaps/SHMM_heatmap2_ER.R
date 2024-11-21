@@ -1,21 +1,19 @@
-
-
 # When the true model is an Mk model, we hope that the hiThresh model is not ever favored.
-nsim = 50
 
-# load packages and functions
-library(ape)
-library(treeplyr)
-library(textshape)
-library(vctrs)
-library(stringr)
-library("phytools")
-require(dplyr)
-require(corHMM)
-library(geiger)
-library(ggplot2)
-library(gplots)
-library(phytools)
+required_packages <- c("ape", "treeplyr", "textshape", "vctrs", "stringr", 
+                      "phytools", "dplyr", "corHMM", "geiger", "ggplot2", "gplots")
+
+# Check and install missing packages
+missing_packages <- required_packages[!required_packages %in% installed.packages()[,"Package"]]
+if(length(missing_packages) > 0) {
+  install.packages(missing_packages)
+}
+
+# Set seed for reproducibility 
+set.seed(42)
+
+# Add validation
+stopifnot(is.numeric(nsim), nsim > 0)
 
 #old matrix maker functions from corhmm
 rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
