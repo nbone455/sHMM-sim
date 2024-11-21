@@ -1,9 +1,10 @@
-# true model threshold 
+# This script tests whether data generated under a threshold model correctly favors 
+# threshold models over Mk models in model comparison tests
+# We simulate continuous trait data, discretize it into different numbers of states,
+# and compare fits between threshold and Mk models using AIC/BIC
 
-## Mk vs ThreshMK
 
-
-# load packages and functions
+# Required libraries for phylogenetic comparative methods, data manipulation, and visualization
 library(ape)
 library(treeplyr)
 library(textshape)
@@ -17,12 +18,16 @@ library(ggplot2)
 library(gplots)
 library(phytools)
 
+# Number of simulation replicates 
 nsim = 50
 
-setwd("~/Documents/hiThresh power/R")
+# Generate rate matrices for different model types 
+# rate.cat: Number of rate categories
+# hrm: Hidden rates model flag
+# ntraits: Number of traits being modeled
+# nstates: Number of discrete states
+# model: Model type (ER/SYM/ARD)
 
-
-#old matrix maker functions from corhmm
 rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
   if (hrm == TRUE) {
     k = 2
@@ -229,7 +234,10 @@ rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   return(rate.mat.index)
 }
 
-#root function
+# Calculate root state frequencies based on proportions
+# prop: Observed proportion of state 1
+# bins: Number of total bins/states
+
 root.obs <- function(prop, bins, cutoff=3.1){
   qq <- qnorm(prop, 0, 1)
   x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
@@ -239,14 +247,20 @@ root.obs <- function(prop, bins, cutoff=3.1){
   return(P)
 }
 
-#proportion function
+# Calculate proportion of state 1 in data
+# data: Data frame with character states
+
 prop <- function(data) {
   x = table(unlist(data[,2]))
   prop_1 <- x[1] / (x[1]+x[2])
   return(prop_1)
 }
 
-#BIC function
+# Calculate BIC score
+# loglik: Log likelihood
+# k: Number of parameters
+# n: Number of taxa
+
 bic <- function(loglik, k, n) {
   ##where k is number of states 
   ##and n is number of taxa (up for debate lol)
