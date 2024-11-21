@@ -20,3 +20,6 @@ generalized hidden Markov model vs threshold-approximation hidden state model eq
 generalized hidden Markov model vs threshold-approximation hidden state model equal rates
 
 # empirical exampele: primate molars
+
+People think that the presence or absence of a third molar is a continous threshold trait. 
+The continous liability is the underlying, developmentally-based ratio between a primates first, second and third molar sizes. Essentially, your second molar size depends on your first, and then your third depends on your second (and through causal properties, the first). The resulting situation is that primate species do not all have an equal probabibility of switching from presence to absence or absence to presence -- some species are closer to the "threshold" than others. What exactly this threshold may be is not in the scope of this analysis (check Machado et al., check um that other person teehe)
