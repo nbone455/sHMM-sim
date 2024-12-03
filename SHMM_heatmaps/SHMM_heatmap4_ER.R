@@ -1,4 +1,7 @@
-# heatmap 4, true model is snap, near threshold model
+# This script tests whether a "snap" model (similar to threshold model but with one additional 
+# transition) performs better than threshold models when the true model is a "snap" model.
+# The snap model allows transitions from state 1 directly to the most extreme state,
+# breaking the strict ordering of the threshold model.
 
 # load packages and functions
 library(ape)
@@ -15,7 +18,13 @@ library(gplots)
 
 nsim <- 50
 
-#old matrix maker functions from corhmm
+# Create rate matrices for different model types (from corHMM package)
+# rate.cat: Number of rate categories 
+# hrm: Hidden rates model flag
+# ntraits: Number of traits
+# nstates: Number of character states
+# model: Model type (ER/SYM/ARD)
+
 rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
   if (hrm == TRUE) {
     k = 2
@@ -222,7 +231,7 @@ rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   return(rate.mat.index)
 }
 
-#root function
+# Calculate root state frequencies based on normal distribution
 root.obs <- function(prop, bins, cutoff =3.1){
   qq <- qnorm(prop, 0, 1)
   x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
@@ -232,14 +241,14 @@ root.obs <- function(prop, bins, cutoff =3.1){
   return(P)
 }
 
-#proportion function
+# Calculate proportion of tips in state 
 prop <- function(data) {
   x = table(unlist(data[,2]))
   prop_1 <- x[1] / (x[1]+x[2])
   return(prop_1)
 }
 
-#BIC function
+# Calculate BIC score
 bic <- function(loglik, k, n) {
   ##where k is number of states 
   ##and n is number of taxa (up for debate lol)
@@ -247,7 +256,7 @@ bic <- function(loglik, k, n) {
   bic_v <- -2*loglik + k*log(n)
   return(bic_v) 
 } 
-
+# Helper to create starting values for corHMM from threshold model results
 make_starting_values <- function(HMM_model,thresh_model,n_state) {
   ratemat6 <- HMM_model$index.mat
   ratemat6 <- ratemat6[c(rev(seq(1,2*n_state,2)),seq(2,2*n_state,2)),]
@@ -260,7 +269,7 @@ make_starting_values <- function(HMM_model,thresh_model,n_state) {
   return(ratemat6)
 }
 
-#saving aic in dataframe 
+# Store model fit results in data frame
 put_df_aic <- function(data, fit, i){
   state <- ncol(fit$solution) 
   samp <- length(fit$phy$tip.label)
@@ -280,7 +289,8 @@ put_df_aic <- function(data, fit, i){
 }
 
 # making all matrices
-
+# Matrix definitions:
+# Create basic rate matrices for different numbers of states
 ## lists to contain the 200 sims for each Markov model and the threshold model
 matrix_listARD <- replicate(n=8, expr=list())
 matrix_listER <- replicate(n=8, expr=list())
@@ -307,8 +317,7 @@ for (i in  1:8){
   matrix_listThreshER[[i]] <- m4
 }
 
-## MAKING SNAPPED MODEL 
-
+# Create "snap" model matrices that allow jumps from state 1 to extreme state
 # brute force  (making it so you can go from slow 0 to slow 1, and not the other way)
 ## four
 snap_four <- matrix(c(NA,1,NA,NA,NA,NA,1,NA,NA,1,NA,NA,1,NA,1,NA), nrow=4, ncol=4)
@@ -542,8 +551,7 @@ everyting <- list()
 
 # if errors out put in trycatch, 
 # try with do first then dopar, then full
-
-
+# Main simulation loop:
 for(i in 1:nsim){
   count <- as.character(i)
   a0 <- runif(1,-1,1)
