@@ -458,7 +458,7 @@ DrStructure <- function(data, phy, mats) {
 ```{r}
 library(dplyr)
 library(ape)
-library(treeplyr)
+#library(treeplyr)
 
 #prim_tree <- read.nexus("tree.nex")
 prim_tree <- read.nexus(file = "../data/prim_10k.nex")
@@ -487,7 +487,15 @@ attempt <- mutate(attempt, ratio = (m3.md) / (m1.md))
 hist(attempt$ratio, main = "distribution of molar ratios across primates", xlab = "molar 3 / molar 1 ratio")
 dat <- attempt
 ```
-  
+
+```{r}
+attempt <- mutate(attempt, ratio2 = (m2.md) / (m1.md))
+plot(attempt$ratio2, attempt$ratio, xlab = "m2/m1", ylab = "m3/m1")
+abline(h = c(0.7,0.8, 0.9, 1.0))
+```
+
+
+
 ### testing threshold decisions
 
 ```{r}
