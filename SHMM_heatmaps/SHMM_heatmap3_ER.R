@@ -23,7 +23,13 @@ library(gplots)
 # how many simulations
 nsim <- 50
 
-#old matrix maker functions from corhmm
+# Create rate matrices for different model types (from corHMM package)
+# rate.cat: Number of rate categories 
+# hrm: Hidden rates model flag
+# ntraits: Number of traits
+# nstates: Number of character states
+# model: Model type (ER/SYM/ARD)
+
 rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL, model = c("ER", "SYM", "ARD")){
   if (hrm == TRUE) {
     k = 2
@@ -204,6 +210,11 @@ rate.mat.maker <- function (rate.cat, hrm = TRUE, ntraits = NULL, nstates = NULL
   }
   return(rate.mat.index)
 }
+
+# Drop specified parameters from a rate matrix
+# rate.mat.index: Matrix to modify
+# drop.par: Vector of parameters to remove
+
 rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   if(is.null(rate.mat.index)){
     stop("Rate matrix needed.  See mat.maker to create one.\n")
@@ -229,7 +240,11 @@ rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
   return(rate.mat.index)
 }
 
-#root function
+# Calculate root state frequencies using normal distribution
+# prop: Observed proportion of state 1
+# bins: Number of bins/states
+# cutoff: Standard deviation cutoff 
+
 root.obs <- function(prop, bins, cutoff =3.1){
   qq <- qnorm(prop, 0, 1)
   x <- pnorm(seq(-1*cutoff, cutoff, length.out=bins-1), qq,1)
@@ -239,14 +254,19 @@ root.obs <- function(prop, bins, cutoff =3.1){
   return(P)
 }
 
-#proportion function
+# Calculate proportion of tips in state 1
+# data: Data frame with character states
 prop <- function(data) {
   x = table(unlist(data[,2]))
   prop_1 <- x[1] / (x[1]+x[2])
   return(prop_1)
 }
 
-#BIC function
+# Calculate BIC score
+# loglik: Log likelihood
+# k: Number of parameters 
+# n: Number of taxa
+
 bic <- function(loglik, k, n) {
   ##where k is number of states 
   ##and n is number of taxa (up for debate lol)
@@ -254,6 +274,11 @@ bic <- function(loglik, k, n) {
   bic_v <- -2*loglik + k*log(n)
   return(bic_v) 
 } 
+
+# Convert corHMM rate matrix to format compatible with threshold model
+# HMM_model: Fitted corHMM model
+# thresh_model: Fitted threshold model
+# n_state: Number of states
 
 make_starting_values <- function(HMM_model,thresh_model,n_state) {
 ratemat6 <- HMM_model$index.mat
@@ -267,7 +292,11 @@ ratemat6  <-  ratemat6[,o]
 return(ratemat6)
 }
 
-#saving aic in dataframe 
+# Store model fit results in data frame
+# data: Results data frame
+# fit: Fitted model object
+# i: Row index
+
 put_df_aic <- function(data, fit, i){
   state <- ncol(fit$solution) 
   samp <- length(fit$phy$tip.label)
@@ -288,6 +317,7 @@ put_df_aic <- function(data, fit, i){
 
 # basic Mk model 
 ## lists to contain the 200 sims for each Markov model and the threshold model
+
 matrix_listARD <- replicate(n=8, expr=list())
 matrix_listER <- replicate(n=8, expr=list())
 matrix_listThreshER <- replicate(n=8, expr=list())

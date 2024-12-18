@@ -1,21 +1,33 @@
+# Script to visualize model comparison results from four simulation scenarios
+# Creates violin plots showing AIC differences between models 
+# Data comes from previously saved simulation results (heatmap1-4)
 
+#------------------------------------------------------------------------------
+# Load required packages
+#------------------------------------------------------------------------------
+library(ggplot2)
+library(dplyr)
+
+#------------------------------------------------------------------------------
+# Helper function to process heatmap results into plottable format
+#------------------------------------------------------------------------------
+  # Takes heatmap matrix and converts to long format data frame
+  # heat: Matrix containing AIC differences from simulations
+  # Returns: Data frame with columns for AIC, sample size (ntaxa), and number of states
 make_box <- function(heat) {
-  
   h1 <- heat
-  # 4 state
-  
-  #splitting by nstate
+    
+    # Process 4-state results
   h1_4 <- lapply(h1, '[', ,1)
   h1_4 <- unlist(h1_4)
   h1_4 <- data.frame(h1_4)
   h1_4$ntaxa <- "NA"
+    # Add sample size information (50,100,200 taxa)
   h1_4$ntaxa[seq(from = 1, to = length(h1_4$ntaxa), by = 3)] <- 50
   h1_4$ntaxa[seq(from = 2, to = length(h1_4$ntaxa), by = 3)] <- 100
   h1_4$ntaxa[seq(from = 3, to = length(h1_4$ntaxa), by = 3)] <- 200
   colnames(h1_4) <- c("aic", "ntaxa")
   h1_4$nstate <- 4
-  
-  
   
   ggplot(h1_4, aes(x = ntaxa, y = aic)) +
     geom_boxplot()
@@ -183,7 +195,6 @@ six <- ggplot(h1_six, aes(x = ntaxa, y = aic)) +
 ggsave(device = 'png', plot = six, filename = "h1_six.png",dpi=900)
 
 ## just eight 
-
 h1_eight <- filter(h1_fullb, nstate == 8)
 eight <- ggplot(h1_eight, aes(x = ntaxa, y = aic)) +
   ylim(-20,20)+
@@ -220,7 +231,6 @@ ten <- ggplot(h1_ten, aes(x = ntaxa, y = aic)) +
 ggsave(device = 'png', plot = ten, filename = "h1_ten.png",dpi=900)
 
 ## just 12
-
 h1_twelve <- filter(h1_fullb, nstate == 12)
 twelve <- ggplot(h1_twelve, aes(x = ntaxa, y = aic)) +
   ylim(-20,20)+
@@ -238,8 +248,7 @@ twelve <- ggplot(h1_twelve, aes(x = ntaxa, y = aic)) +
         plot.background=element_blank())
 ggsave(device = 'png', plot = twelve, filename = "h1_twelve.png",dpi=900)
 
-## just 14
-
+## just 14 states
 h1_fourteen <- filter(h1_fullb, nstate == 14)
 fourteen <- ggplot(h1_fourteen, aes(x = ntaxa, y = aic)) +
   geom_violin(aes())+
